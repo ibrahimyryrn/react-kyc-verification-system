@@ -4,14 +4,14 @@
  */
 
 // Constants for MRZ image processing
-const CROP_WIDTH_RATIO = 0.85; // 85% of image width
-const ASPECT_RATIO = 3.2; // Width to height ratio for MRZ region
+const CROP_WIDTH_RATIO = 0.95; // 95% of image width
+const ASPECT_RATIO = 4.5; // Width to height ratio for MRZ region
 const SCALE_FACTOR = 2.5; // Upscaling factor for better OCR accuracy
 const BINARY_THRESHOLD = 110; // Threshold for binary conversion (adjustable 100-130)
 
 /**
  * Preprocesses MRZ image with cropping and enhancement
- * - Crop MRZ region (85% width, centered, 3.2:1 aspect ratio)
+ * - Crop MRZ region (95% width, centered, 4.5:1 aspect ratio)
  * - Upscale 2.5x for better OCR accuracy
  * - Grayscale conversion
  * - Binary threshold (black-white)
@@ -37,7 +37,7 @@ export const preprocessMRZImage = async (imageSrc: string): Promise<string> => {
       const captureWidth = img.width;
       const captureHeight = img.height;
 
-      // UI frame ratios (Width 85%, Height = Width / 3.2)
+      // UI frame ratios (Width 95%, Height = Width / 4.5)
       const cropWidth = captureWidth * CROP_WIDTH_RATIO;
       const cropHeight = cropWidth / ASPECT_RATIO;
 

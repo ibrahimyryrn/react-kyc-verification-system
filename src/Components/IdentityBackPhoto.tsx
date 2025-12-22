@@ -138,10 +138,10 @@ function IdentityBackPhoto() {
       />
 
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-2xl">
-        {/* MRZ-sized camera view (3.2:1 aspect ratio, 75% width - smaller rectangle, reduced height) */}
-        <div className="relative w-[75%] mb-8" style={{ aspectRatio: "3.2/1" }}>
+        {/* MRZ-sized camera view (4.5:1 aspect ratio, 95% width - smaller rectangle, reduced height) */}
+        <div className="relative w-[95%] mb-8" style={{ aspectRatio: "4.5/1" }}>
           <Card
-            className="overflow-hidden h-full rounded-[24px] border-4 border-white bg-black"
+            className="overflow-hidden h-full rounded-[16px] border-4 border-white bg-black"
             styles={{ body: { padding: 0, height: "100%" } }}
           >
             <div className="relative w-full h-full">
@@ -152,10 +152,10 @@ function IdentityBackPhoto() {
                 audio={false}
                 videoConstraints={{
                   width: 1920,
-                  height: 540,
+                  height: 1080,
                   facingMode: "environment",
                 }}
-                className="w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover"
               />
               {/* Corner indicators only (no frame overlay needed) */}
               <div className="absolute inset-0 pointer-events-none">

@@ -152,7 +152,7 @@ function IdentityBackPhoto() {
                 audio={false}
                 videoConstraints={{
                   width: 1920,
-                  height: 360,
+                  height: 540,
                   facingMode: "environment",
                 }}
                 className="w-full h-full object-cover"

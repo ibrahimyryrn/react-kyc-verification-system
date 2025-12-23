@@ -102,7 +102,7 @@ export const parseOCRText = (text: string): OCRResults => {
           .filter((part) => part.length > 0);
 
         if (parts.length < 2 && cleanLine3.length > 0) {
-          // Pattern-based: Turkish surnames 4-15 chars, names 4-10 chars
+          // Pattern-based: Turkish surnames 4-15 chars, names 4-15 chars
           const uppercaseSequences = cleanLine3.match(/[A-Z]+/g) || [];
 
           if (uppercaseSequences.length >= 2) {
@@ -115,20 +115,20 @@ export const parseOCRText = (text: string): OCRResults => {
               firstSeq.length >= 4 &&
               firstSeq.length <= 15 &&
               secondSeq.length >= 4 &&
-              secondSeq.length <= 10
+              secondSeq.length <= 15
             ) {
               parts = [firstSeq, secondSeq];
             }
           }
 
-          // Length-based fallback (surname 4-15 chars, name 4-10 chars)
+          // Length-based fallback (surname 4-15 chars, name 4-15 chars)
           if (parts.length < 2) {
             for (let surnameLen = 4; surnameLen <= 15; surnameLen++) {
               if (cleanLine3.length > surnameLen + 4) {
                 const potentialSurname = cleanLine3.substring(0, surnameLen);
                 const rest = cleanLine3.substring(surnameLen);
 
-                const nameMatch = rest.match(/^[A-Z]{4,10}/);
+                const nameMatch = rest.match(/^[A-Z]{4,15}/);
                 if (nameMatch) {
                   const potentialName = nameMatch[0];
 
@@ -148,7 +148,7 @@ export const parseOCRText = (text: string): OCRResults => {
         }
 
         if (parts.length >= 1 && !parsedData.surname) {
-          let surname = parts[0].replace(/</g, "").trim();
+          const surname = parts[0].replace(/</g, "").trim();
 
           const surnameMatch = surname.match(/^([A-Z]{4,15})/);
           if (surnameMatch) {
@@ -163,7 +163,7 @@ export const parseOCRText = (text: string): OCRResults => {
 
         if (parts.length >= 2 && !parsedData.name) {
           const givenNames = parts[1].replace(/</g, "").trim();
-          const firstName = givenNames.match(/^[A-Z]{4,10}/);
+          const firstName = givenNames.match(/^[A-Z]{4,15}/);
           if (firstName && firstName[0].length >= 4) {
             parsedData.name = firstName[0];
           }

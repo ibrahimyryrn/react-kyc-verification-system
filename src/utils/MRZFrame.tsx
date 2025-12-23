@@ -5,12 +5,10 @@ const MRZFrame = () => {
     <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
       {/* MRZ Rectangle border - centered, no blur overlay */}
       <div
-        // GÜNCELLEME 1: Genişliği mobilde %95, masaüstünde %60 yaptık.
         className="relative border-4 border-white rounded-xl w-[95%]"
         style={{
-          // GÜNCELLEME 2: Oranı 3/1'den 4.5/1'e çektik (Posta kutusu deliği gibi ince uzun)
           aspectRatio: "4.5/1",
-          boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.5)", // Opsiyonel: Çerçeve dışını karartmak odaklanmayı artırır
+          boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.5)", // optional: darken the frame to help focus
         }}
       >
         {/* Corner indicators */}

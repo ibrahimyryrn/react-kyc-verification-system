@@ -33,13 +33,10 @@ function LivenessBlink() {
     livenessSelfie,
   } = useVerificationStore();
 
-  // Continuous blink detection
   useEffect(() => {
     let isMounted = true;
-    // Reset comparison flag and blink count when component mounts
     isComparingRef.current = false;
     blinkCountRef.current = 0;
-    setBlinkCount(0);
 
     const detectBlink = async () => {
       if (
@@ -70,12 +67,9 @@ function LivenessBlink() {
 
         setIsFaceDetected(faceDetected);
 
-        // Detect blink event: Count when eyes transition from CLOSED to OPEN
-        // (blinkDetected = true means eyes are CLOSED)
+        // Count blink when eyes transition from CLOSED to OPEN
         if (!blinkDetected && wasBlinkingRef.current) {
-          // Eyes just opened - blink completed!
           const now = Date.now();
-          // Debounce: Only count if last blink was more than BLINK_DEBOUNCE_MS ago
           if (now - lastBlinkTimeRef.current > BLINK_DEBOUNCE_MS) {
             blinkCountRef.current += 1;
             const newBlinkCount = blinkCountRef.current;
@@ -90,19 +84,14 @@ function LivenessBlink() {
               `Blink detected! (${newBlinkCount}/${requiredBlinks})`
             );
 
-            // If required blinks reached, perform face comparison
             if (newBlinkCount >= requiredBlinks && !isComparingRef.current) {
-              // Prevent multiple comparisons
               isComparingRef.current = true;
               setProcessingLiveness(true);
 
-              // Stop detection loop immediately
               if (animationFrameRef.current) {
                 cancelAnimationFrame(animationFrameRef.current);
                 animationFrameRef.current = undefined;
               }
-
-              // Compare faces: croppedPortrait (from ID) vs livenessSelfie (from selfie)
               try {
                 if (!croppedPortrait || !livenessSelfie) {
                   message.error("Missing face images for comparison");
@@ -123,15 +112,12 @@ function LivenessBlink() {
                 );
 
                 if (isMatch) {
-                  // Mark liveness as complete
                   completeLiveness();
                   message.success(
                     `Faces match! Identity verified. (Distance: ${distance.toFixed(
                       3
                     )})`
                   );
-
-                  // Immediately return to start screen (no delay needed)
                   setCurrentStep("start");
                 } else {
                   message.error(
@@ -140,7 +126,6 @@ function LivenessBlink() {
                     )})`
                   );
                   setProcessingLiveness(false);
-                  // Reset blink count and go back to selfie step for retry
                   blinkCountRef.current = 0;
                   setBlinkCount(0);
                   isComparingRef.current = false;
@@ -150,13 +135,12 @@ function LivenessBlink() {
                 logger.error("Error comparing faces:", error);
                 message.error("Failed to compare faces. Please try again.");
                 setProcessingLiveness(false);
-                // Reset and go back to selfie step
                 blinkCountRef.current = 0;
                 setBlinkCount(0);
                 isComparingRef.current = false;
                 setCurrentStep("liveness-front");
               }
-              return; // Stop detection loop
+              return;
             }
           }
         }
@@ -166,13 +150,11 @@ function LivenessBlink() {
         logger.error("Error detecting blink:", error);
       }
 
-      // Continue detection loop only if not comparing and not processing
       if (isMounted && !isProcessingLiveness && !isComparingRef.current) {
         animationFrameRef.current = requestAnimationFrame(detectBlink);
       }
     };
 
-    // Start detection loop
     animationFrameRef.current = requestAnimationFrame(detectBlink);
 
     return () => {

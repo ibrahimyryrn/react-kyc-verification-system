@@ -73,30 +73,23 @@ const base64ToImage = (base64: string): Promise<HTMLImageElement> => {
   });
 };
 
-/**
- * Add white padding to help detection
- */
 const addPaddingToImage = (
   img: HTMLImageElement,
-  paddingPercent: number = 0.5 // 50% padding (leaves more space so detector can find the face)
+  paddingPercent: number = 0.5
 ): HTMLCanvasElement => {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
 
   if (!ctx) throw new Error("Could not get canvas context");
 
-  // Increased padding amount
   const paddingX = img.width * paddingPercent;
   const paddingY = img.height * paddingPercent;
 
   canvas.width = img.width + paddingX * 2;
   canvas.height = img.height + paddingY * 2;
 
-  // White background
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Draw image centered
   ctx.drawImage(img, paddingX, paddingY, img.width, img.height);
 
   return canvas;
@@ -106,9 +99,9 @@ const addPaddingToImage = (
  * Compare two face images
  */
 export const compareFaces = async (
-  image1Base64: string, // ID Portrait
-  image2Base64: string, // Selfie
-  threshold: number = 0.55 // Distance threshold (can set to 0.6 for more tolerance)
+  image1Base64: string,
+  image2Base64: string,
+  threshold: number = 0.55
 ): Promise<{ isMatch: boolean; distance: number }> => {
   try {
     await loadModels();
@@ -118,20 +111,14 @@ export const compareFaces = async (
       base64ToImage(image2Base64),
     ]);
 
-    // Convert to canvas and add padding
     const canvas1 = addPaddingToImage(img1Raw);
     const canvas2 = addPaddingToImage(img2Raw);
 
-    // SSD Mobilenet Options
-    // Set minConfidence to 0.1 to try to capture even hard-to-detect faces
+    // Lower confidence to detect hard-to-find faces on ID cards
     const detectOptions = new faceapi.SsdMobilenetv1Options({
       minConfidence: 0.1,
       maxResults: 1,
     });
-
-    // console.log("🔍 Detecting faces...");
-
-    // 1. Scan image (ID)
     const descriptor1 = await faceapi
       .detectSingleFace(canvas1, detectOptions)
       .withFaceLandmarks()
@@ -139,18 +126,9 @@ export const compareFaces = async (
 
     if (!descriptor1) {
       console.error("❌ Could not detect face in ID photo!");
-      // You can log the canvas to see the reason for the error
-      // console.log(canvas1.toDataURL());
       throw new Error("Could not detect face in ID Photo");
-    } else {
-      // console.log(
-      //   "✅ ID Face detected (Score: " +
-      //     descriptor1.detection.score.toFixed(2) +
-      //     ")"
-      // );
     }
 
-    // 2. Scan image (Selfie)
     const descriptor2 = await faceapi
       .detectSingleFace(canvas2, detectOptions)
       .withFaceLandmarks()
@@ -159,27 +137,14 @@ export const compareFaces = async (
     if (!descriptor2) {
       console.error("❌ Could not detect face in selfie photo!");
       throw new Error("Could not detect face in Selfie");
-    } else {
-      // console.log(
-      //   "✅ Selfie Face detected (Score: " +
-      //     descriptor2.detection.score.toFixed(2) +
-      //     ")"
-      // );
     }
 
-    // Calculate distance
     const distance = faceapi.euclideanDistance(
       descriptor1.descriptor,
       descriptor2.descriptor
     );
 
     const isMatch = distance < threshold;
-
-    // console.log(
-    //   `🎯 COMPARISON RESULT: Distance=${distance.toFixed(
-    //     3
-    //   )}, Threshold=${threshold}, MATCH=${isMatch ? "YES" : "NO"}`
-    // );
 
     return { isMatch, distance };
   } catch (error) {

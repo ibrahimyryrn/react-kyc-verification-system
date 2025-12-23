@@ -20,24 +20,20 @@ export const useOCR = () => {
   const [isReady, setIsReady] = useState(false);
   const workerRef = useRef<Worker | null>(null);
 
-  // Initialize worker once when component mounts
   useEffect(() => {
     const initWorker = async () => {
       try {
-        // Create Tesseract worker with English and Turkish languages
         const worker = await createWorker(["eng", "tur"]);
 
-        // Optimized parameters for MRZ
         await worker.setParameters({
-          // PSM 6: Single uniform block of text (ideal for 3-line MRZ format)
+          // PSM 6: Single uniform block (ideal for 3-line MRZ)
           tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
-          // OCR-B characters only (ICAO Doc 9303 standard - no Turkish characters in MRZ)
+          // OCR-B characters only (ICAO Doc 9303 - no Turkish chars in MRZ)
           tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<",
         });
 
         workerRef.current = worker;
         setIsReady(true);
-        // console.log("✅ Tesseract Worker initialized and ready");
       } catch (error) {
         console.error("Failed to initialize Tesseract worker:", error);
         setIsReady(false);
@@ -46,12 +42,10 @@ export const useOCR = () => {
 
     initWorker();
 
-    // Cleanup: terminate worker when component unmounts
     return () => {
       if (workerRef.current) {
         workerRef.current.terminate();
         workerRef.current = null;
-        // console.log("🔄 Tesseract Worker terminated");
       }
     };
   }, []);
@@ -63,20 +57,14 @@ export const useOCR = () => {
    */
   const scanImage = async (imageSrc: string): Promise<OCRResults | null> => {
     if (!workerRef.current || !isReady) {
-      // console.warn("⚠️ Worker not ready yet. Please wait...");
       return null;
     }
 
     try {
-      // 1. Preprocess image (crop, upscale, threshold)
       const processedImage = await preprocessMRZImage(imageSrc);
-
-      // 2. Perform OCR (Worker is already initialized, no wait time!)
       const {
         data: { text },
       } = await workerRef.current.recognize(processedImage);
-
-      // 3. Parse OCR text and extract MRZ data
       const parsedData = parseOCRText(text);
 
       return parsedData;

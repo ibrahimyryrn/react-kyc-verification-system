@@ -1,4 +1,8 @@
 import { FaceDetector, FilesetResolver } from "@mediapipe/tasks-vision";
+import {
+  FACE_CROP_PADDING,
+  MEDIAPIPE_FACE_DETECTION_CONFIDENCE,
+} from "../config/constants";
 
 let faceDetector: FaceDetector | null = null;
 
@@ -20,7 +24,7 @@ const initializeFaceDetector = async (): Promise<FaceDetector> => {
       delegate: "GPU",
     },
     runningMode: "IMAGE",
-    minDetectionConfidence: 0.5,
+    minDetectionConfidence: MEDIAPIPE_FACE_DETECTION_CONFIDENCE,
   });
 
   return faceDetector;
@@ -60,35 +64,29 @@ export const extractFaceFromID = async (
       return null;
     }
 
-    // --- CROP LOGIC ---
-    // Take the face with a bit more space so hair and chin don't get cut off.
-    // face-api.js works better when it sees the full face.
-    const padding = 0.2; // 20% padding (better for face-api.js)
+    // Add padding so face-api.js sees full face (better for comparison)
+    const padding = FACE_CROP_PADDING;
 
     const x = Math.max(0, bbox.originX - bbox.width * padding);
     const y = Math.max(0, bbox.originY - bbox.height * padding);
     const width = bbox.width * (1 + padding * 2);
     const height = bbox.height * (1 + padding * 2);
 
-    // Check boundaries
     const cropX = Math.max(0, Math.min(x, img.width));
     const cropY = Math.max(0, Math.min(y, img.height));
     const cropWidth = Math.min(width, img.width - cropX);
     const cropHeight = Math.min(height, img.height - cropY);
 
-    // --- CANVAS PROCESSING ---
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
 
     if (!ctx) throw new Error("Could not get canvas context");
 
-    // Create 2x larger canvas to preserve resolution (High DPI)
-    // This provides sharpness without needing a sharpen filter.
+    // Upscale 2x to preserve resolution without pixel manipulation
     const scale = 2.0;
     canvas.width = cropWidth * scale;
     canvas.height = cropHeight * scale;
 
-    // High Quality Scaling
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
 
@@ -97,18 +95,16 @@ export const extractFaceFromID = async (
       cropX,
       cropY,
       cropWidth,
-      cropHeight, // Source coordinates
+      cropHeight,
       0,
       0,
       canvas.width,
-      canvas.height // Destination coordinates (upscaled)
+      canvas.height
     );
 
-    // NOTE: We are NOT calling functions like unsharpMask, enhanceColors here.
-    // They were corrupting pixel data. Pure RGB data is best.
+    // No pixel manipulation (unsharpMask, enhanceColors) - preserves natural RGB for better face-api.js comparison
 
     const croppedFace = canvas.toDataURL("image/jpeg", 0.95);
-    // console.log("Face successfully cropped from ID (Clean RGB)");
     return croppedFace;
   } catch (error) {
     console.error("Error extracting face from ID:", error);

@@ -3,6 +3,14 @@
  * For eye blink detection and face capture
  */
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
+import {
+  EAR_THRESHOLD,
+  FACE_CROP_PADDING,
+  MEDIAPIPE_FACE_DETECTION_CONFIDENCE,
+  MEDIAPIPE_FACE_LANDMARKER_DETECTION_CONFIDENCE,
+  MEDIAPIPE_FACE_LANDMARKER_PRESENCE_CONFIDENCE,
+  MEDIAPIPE_FACE_LANDMARKER_TRACKING_CONFIDENCE,
+} from "../config/constants";
 
 /**
  * Normalized landmark point (x, y coordinates normalized 0-1)
@@ -38,9 +46,9 @@ const initializeFaceLandmarker = async (): Promise<FaceLandmarker> => {
     outputFaceBlendshapes: false,
     runningMode: "VIDEO",
     numFaces: 1,
-    minFaceDetectionConfidence: 0.5,
-    minFacePresenceConfidence: 0.5,
-    minTrackingConfidence: 0.5,
+    minFaceDetectionConfidence: MEDIAPIPE_FACE_LANDMARKER_DETECTION_CONFIDENCE,
+    minFacePresenceConfidence: MEDIAPIPE_FACE_LANDMARKER_PRESENCE_CONFIDENCE,
+    minTrackingConfidence: MEDIAPIPE_FACE_LANDMARKER_TRACKING_CONFIDENCE,
   });
 
   return faceLandmarker;
@@ -56,10 +64,7 @@ const calculateEAR = (eyeLandmarks: NormalizedLandmark[]): number => {
     return 0;
   }
 
-  // EAR calculation using 6 points:
-  // [0] = outer corner, [1] = inner corner, [2] = top, [3] = bottom, [4] = top2, [5] = bottom2
-
-  // Vertical distances (top to bottom)
+  // EAR calculation: [0]=outer corner, [1]=inner corner, [2]=top, [3]=bottom, [4]=top2, [5]=bottom2
   const vertical1 = Math.sqrt(
     Math.pow(eyeLandmarks[2].y - eyeLandmarks[3].y, 2) +
       Math.pow(eyeLandmarks[2].x - eyeLandmarks[3].x, 2)
@@ -68,62 +73,43 @@ const calculateEAR = (eyeLandmarks: NormalizedLandmark[]): number => {
     Math.pow(eyeLandmarks[4].y - eyeLandmarks[5].y, 2) +
       Math.pow(eyeLandmarks[4].x - eyeLandmarks[5].x, 2)
   );
-
-  // Horizontal distance (outer to inner corner)
   const horizontal = Math.sqrt(
     Math.pow(eyeLandmarks[0].x - eyeLandmarks[1].x, 2) +
       Math.pow(eyeLandmarks[0].y - eyeLandmarks[1].y, 2)
   );
 
-  // Prevent division by zero
   if (horizontal === 0) {
     return 0;
   }
 
-  // EAR = (vertical1 + vertical2) / (2 * horizontal)
   return (vertical1 + vertical2) / (2 * horizontal);
 };
 
 /**
  * Detect if eyes are closed based on EAR threshold
  * @param landmarks - Face landmarks from MediaPipe
- * @param threshold - EAR threshold (default 0.25, lower = more sensitive)
+ * @param threshold - EAR threshold (default from constants, lower = more sensitive)
  * @returns true if eyes are closed (blinking)
  */
 export const detectEyeBlink = (
   landmarks: NormalizedLandmark[],
-  threshold: number = 0.2 // Lower threshold (0.2) for better sensitivity
+  threshold: number = EAR_THRESHOLD
 ): boolean => {
   if (!landmarks || landmarks.length < 468) {
-    return false; // Not enough landmarks
+    return false;
   }
 
-  // Left eye key points: [outer corner, inner corner, top, bottom, top2, bottom2]
-  // MediaPipe Face Mesh indices for left eye
+  // MediaPipe Face Mesh indices for left and right eyes
   const leftEyeIndices = [33, 133, 159, 145, 158, 153];
   const leftEyePoints = leftEyeIndices.map((i) => landmarks[i]);
 
-  // Right eye key points: [outer corner, inner corner, top, bottom, top2, bottom2]
-  // MediaPipe Face Mesh indices for right eye
   const rightEyeIndices = [362, 263, 386, 374, 385, 380];
   const rightEyePoints = rightEyeIndices.map((i) => landmarks[i]);
 
   const leftEAR = calculateEAR(leftEyePoints);
   const rightEAR = calculateEAR(rightEyePoints);
-
-  // Average EAR
   const avgEAR = (leftEAR + rightEAR) / 2;
 
-  // Debug: Log EAR values (can be removed in production)
-  /*if (avgEAR > 0) {
-    console.log(
-      `EAR: ${avgEAR.toFixed(3)}, Threshold: ${threshold}, Closed: ${
-        avgEAR < threshold
-      }`
-    );
-  }*/
-
-  // If EAR is below threshold, eyes are closed (blinking)
   return avgEAR < threshold;
 };
 
@@ -177,7 +163,7 @@ export const extractFaceFromSelfie = async (
         delegate: "GPU",
       },
       runningMode: "IMAGE",
-      minDetectionConfidence: 0.5,
+      minDetectionConfidence: MEDIAPIPE_FACE_DETECTION_CONFIDENCE,
     });
 
     const img = new Image();
@@ -192,7 +178,6 @@ export const extractFaceFromSelfie = async (
     const detections = faceDetector.detect(img);
 
     if (!detections || detections.detections.length === 0) {
-      // console.log("No face detected in selfie");
       return null;
     }
 
@@ -200,12 +185,10 @@ export const extractFaceFromSelfie = async (
     const bbox = detection.boundingBox;
 
     if (!bbox) {
-      // console.log("No bounding box found");
       return null;
     }
 
-    // Crop face with padding
-    const padding = 0.2;
+    const padding = FACE_CROP_PADDING;
     const x = Math.max(0, bbox.originX - bbox.width * padding);
     const y = Math.max(0, bbox.originY - bbox.height * padding);
     const width = bbox.width * (1 + padding * 2);
@@ -239,7 +222,6 @@ export const extractFaceFromSelfie = async (
     );
 
     const croppedFace = canvas.toDataURL("image/jpeg", 0.9);
-    // console.log("Face successfully extracted from selfie");
     return croppedFace;
   } catch (error) {
     console.error("Error extracting face from selfie:", error);

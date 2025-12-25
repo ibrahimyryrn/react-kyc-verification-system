@@ -5,6 +5,7 @@ import { useVerificationStore } from "../store/verificationStore";
 import { useOCR } from "../hooks/useOCR";
 import LoadingOverlay from "./LoadingOverlay";
 import { logger } from "../utils/logger";
+import { checkImageBrightness } from "../utils/imageProcessor";
 
 // Corner frame configuration - moved outside component to prevent recreation
 const CORNER_FRAME_CONFIG = [
@@ -80,6 +81,18 @@ function IdentityBackPhoto() {
     setProcessingGovernmentID(true);
 
     try {
+      // Check image brightness before OCR
+      const isBrightEnough = await checkImageBrightness(imageSrc);
+
+      if (!isBrightEnough) {
+        message.warning(
+          "Insufficient lighting. Please move to a brighter area.",
+          5
+        );
+        setProcessingGovernmentID(false);
+        return;
+      }
+
       // Extract MRZ data using OCR (optimized with reusable worker)
       const mrzData = await scanImage(imageSrc);
 

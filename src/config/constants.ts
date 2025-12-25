@@ -27,6 +27,8 @@ export const MRZ_CROP_WIDTH_RATIO =
   Number(import.meta.env.VITE_MRZ_CROP_WIDTH_RATIO) || 0.95; // 95% of image width
 export const MRZ_ASPECT_RATIO =
   Number(import.meta.env.VITE_MRZ_ASPECT_RATIO) || 4.5; // Width to height ratio for MRZ region
+export const LOW_LIGHT_THRESHOLD =
+  Number(import.meta.env.VITE_LOW_LIGHT_THRESHOLD) || 70; // Average grayscale value below which image is considered too dark (0-255)
 
 // MediaPipe Configuration
 export const MEDIAPIPE_FACE_DETECTION_CONFIDENCE =
